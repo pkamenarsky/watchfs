@@ -17,11 +17,11 @@ function runExec(array, file) {
 		var ext = path.extname(file);
 		var out = path.dirname(file) + path.sep + path.basename(file, ext);
 
-		if (array[i].filter == ext.substr(1)) {
+		if (ext.match(array[i].filter) != null) {
 			console.log(array[i].message.replace("$file", file).replace("$out", out));
 
 			exec(array[i].exec.replace("$file", file).replace("$out", out), function(error, stdout, stderr) {
-				if (error != 0)
+				if (error)
 					console.log(stderr);
 			});
 		}
