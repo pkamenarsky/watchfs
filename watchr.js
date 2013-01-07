@@ -27,6 +27,7 @@ function substituteVars(str, file) {
 	return str
 		.replace('$file', file)
 		.replace('$basename', path.basename(file, path.extname(file)))
+		.replace('$ext', path.extname(file).substr(1))
 		.replace('$indir', path.dirname(file))
 		.replace('$outdir', program.outdir);
 }
@@ -40,6 +41,9 @@ function runExec(array, file) {
 				if (error)
 					console.log(stderr);
 			});
+
+			// break after first matching rule
+			break;
 		}
 	}
 }
