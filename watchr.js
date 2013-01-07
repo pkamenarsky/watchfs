@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 var watchr = require('watchr')
-var yaml = require('yaml')
+var yaml = require('js-yaml');
 var fs = require('fs')
 var exec = require('child_process').exec;
 var path = require('path');
@@ -21,7 +21,7 @@ program
 if (!fs.existsSync(program.outdir))
 	fs.mkdirSync(program.outdir);
 
-rules = yaml.eval(fs.readFileSync('watchrules.yaml', 'utf8'));
+rules = yaml.load(fs.readFileSync('watchrules.yaml', 'utf8'));
 
 function substituteVars(str, file) {
 	return str
