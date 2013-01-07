@@ -18,7 +18,9 @@ program
 	.option('-o, --outdir <dir>', 'Output directory [out]', String, 'out')
 	.parse(process.argv);
 
-fs.mkdirSync(program.outdir);
+if (!fs.existsSync(program.outdir))
+	fs.mkdirSync(program.outdir);
+
 rules = yaml.eval(fs.readFileSync('watchrules.yaml', 'utf8'));
 
 function substituteVars(str, file) {
@@ -41,6 +43,8 @@ function runExec(array, file) {
 		}
 	}
 }
+
+// watch fs
 
 watchr.watch({
     path: '.',
