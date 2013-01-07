@@ -11,6 +11,10 @@ Array.prototype.filterOn = function (field, value) {
 	return this.filter(function(elem) {return elem[field] == value});
 }
 
+String.prototype.replaceAll = function (what, str) {
+	return this.replace(new RegExp(what, 'g'), str);
+}
+
 // ---
 
 program
@@ -25,11 +29,11 @@ rules = yaml.load(fs.readFileSync('watchrules.yaml', 'utf8'));
 
 function substituteVars(str, file) {
 	return str
-		.replace('$file', file)
-		.replace('$basename', path.basename(file, path.extname(file)))
-		.replace('$ext', path.extname(file).substr(1))
-		.replace('$indir', path.dirname(file))
-		.replace('$outdir', program.outdir);
+		.replaceAll('\\$file', file)
+		.replaceAll('\\$basename', path.basename(file, path.extname(file)))
+		.replaceAll('\\$ext', path.extname(file).substr(1))
+		.replaceAll('\\$indir', path.dirname(file))
+		.replaceAll('\\$outdir', program.outdir);
 }
 
 function runExec(array, file) {
@@ -51,7 +55,7 @@ function runExec(array, file) {
 // watch fs
 
 watchr.watch({
-    path: '.',
+    path: 'test',
     listener: function(changeType, filePath, fileCurrentStat, filePreviousStat) {
 		var stat = fileCurrentStat ? fileCurrentStat : filePreviousStat;
 
