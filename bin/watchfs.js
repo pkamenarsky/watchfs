@@ -18,7 +18,7 @@ String.prototype.replaceAll = function (what, str) {
 // ---
 
 program
-	.version('0.0.1')
+	.version('1.0.0')
 	.option('-o, --outdir <dir>', 'Output directory [out]', String, 'out')
 	.option('-w, --watchdir <dir>', 'Watch directory [.]', String, '.')
 	.option('-c, --cfg <file>', 'Configuration file [watchrules.yaml]', String, 'watchrules.yaml')

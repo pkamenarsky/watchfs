@@ -1,0 +1,43 @@
+{
+	"name": "watchfs",
+	"description": "Configurable filesystem watcher & build system",
+	"version": "1.0.0",
+	"homepage": "https://github.com/pkamenarsky/watchfs",
+	"license": {
+		"name": "MIT",
+		"url": "http://www.opensource.org/licenses/mit-license.php"
+	},
+
+	"keywords": ["watch", "build", "fs", "filesystem"],
+
+	"author": {
+		"name": "Philip Kamenarsky",
+		"email": "p.kamenarsky@gmail.com",
+		"url": "https://twitter.com/pkamenarsky"
+	},
+
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/pkamenarsky/watchfs.git"
+	},
+
+	"bugs": {
+		"url": "https://github.com/pkamenarsky/watchfs/issues"
+	},
+
+	"dependencies": {
+		"watchr": "2.3.x",
+		"js-yaml": "1.0.x",
+		"commander": "1.1.x"
+	},
+
+	"engines": {
+		"node": ">= 0.6.0"
+	},
+
+	"files": ["bin/watchfs.js"],
+
+	"bin": {
+		"watchfs": "bin/watchfs.js"
+	}
+}
