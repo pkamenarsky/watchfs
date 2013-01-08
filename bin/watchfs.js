@@ -25,6 +25,7 @@ program
 	.option('-w, --watchdir <dir>', 'Watch directory [.]', String, '.')
 	.option('-c, --cfg <file>', 'Configuration file [watchrules.yaml]', String, 'watchrules.yaml')
 	.option('-e, --execrules', 'Execute all rules on start', Boolean, false)
+	.option('-r, --removeoutdir', 'Recursively remove out directory', Boolean, false)
 	.parse(process.argv);
 
 if (!fs.existsSync(program.outdir))
@@ -107,6 +108,9 @@ function watchfs() {
 }
 
 // main
+if (program.removeoutdir)
+	wrench.rmdirSyncRecursive(program.outdir, true);
+
 if (program.execrules) {
 	var files = wrench.readdirSyncRecursive(program.watchdir);
 
@@ -114,6 +118,7 @@ if (program.execrules) {
 		for (var i = 0; i < files.length; i++)
 			handleFile(flow, 'create', path.join(program.watchdir, files[i]),
 					   fs.statSync(path.join(program.watchdir, files[i])), null);
+		console.log('');
 	});
 }
 
