@@ -28,7 +28,9 @@
 	"dependencies": {
 		"watchr": "2.3.x",
 		"js-yaml": "1.0.x",
-		"commander": "1.1.x"
+		"commander": "1.1.x",
+		"wrench": "1.4.x",
+		"asyncblock": "2.1.x"
 	},
 
 	"engines": {
