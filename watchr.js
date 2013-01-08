@@ -60,21 +60,35 @@ function runExec(array, file) {
 			});
 
 			// break after first matching rule
-			break;
+			return true;
 		}
 	}
+
+	// no matching rule found
+	return false;
+}
+
+function handleEvent(changeType, filePath, fileCurrentStat, filePreviousStat) {
+	var stat = fileCurrentStat ? fileCurrentStat : filePreviousStat;
+
+	if (stat.mode & 0x4000 != 0)
+		return runExec(rules.filterOn('type', 'dir').filterOn('event', changeType), filePath);
+	else
+		return runExec(rules.filterOn('type', 'file').filterOn('event', changeType), filePath);
 }
 
 // watch fs
-
 watchr.watch({
     path: program.watchdir,
     listener: function(changeType, filePath, fileCurrentStat, filePreviousStat) {
-		var stat = fileCurrentStat ? fileCurrentStat : filePreviousStat;
+		var handled = false;
 
-		if (stat.mode & 0x4000 != 0)
-			runExec(rules.filterOn('type', 'dir').filterOn('event', changeType), filePath);
-		else
-			runExec(rules.filterOn('type', 'file').filterOn('event', changeType), filePath);
+		// handle 'createupdate' special case
+		if (changeType === 'create' || changeType === 'update')
+			handled = handleEvent('createupdate', filePath, fileCurrentStat, filePreviousStat);
+
+		// if 'createupdate' didn't catch anything, handle normal events
+		if (!handled)
+			handleEvent(changeType, filePath, fileCurrentStat, filePreviousStat);
 	}
 });
