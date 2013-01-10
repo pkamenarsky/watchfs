@@ -7,7 +7,6 @@ var exec = require('child_process').exec;
 var path = require('path');
 var program = require('commander');
 var wrench = require('wrench');
-var asyncblock = require('asyncblock');
 
 Array.prototype.filterOn = function (field, value) {
 	return this.filter(function(elem) {return elem[field] == value});
@@ -19,8 +18,11 @@ String.prototype.replaceAll = function (what, str) {
 
 // ---
 
+// task queue
+var tasks = [];
+
 program
-	.version('1.1.0')
+	.version('1.1.2')
 	.option('-o, --outdir <dir>', 'Output directory [out]', String, 'out')
 	.option('-w, --watchdir <dir>', 'Watch directory [.]', String, '.')
 	.option('-c, --cfg <file>', 'Configuration file [watchrules.yaml]', String, 'watchrules.yaml')
@@ -29,7 +31,7 @@ program
 	.parse(process.argv);
 
 if (!fs.existsSync(program.outdir))
-	fs.mkdirSync(program.outdir);
+	wrench.mkdirSyncRecursive(program.outdir);
 
 rules = yaml.load(fs.readFileSync(program.cfg, 'utf8'));
 
@@ -46,7 +48,7 @@ function substituteVars(str, file) {
 		.replaceAll('\\$outdir', outdir(file));
 }
 
-function runExec(flow, array, file) {
+function runExec(array, file) {
 	for (var i = 0; i < array.length; i++) {
 		if (file.match(array[i].filter) != null) {
 
@@ -55,14 +57,17 @@ function runExec(flow, array, file) {
 
 			// create outdir if it doesn't exist
 			if (!fs.existsSync(outdir(file)))
-				fs.mkdirSync(outdir(file));
+				wrench.mkdirSyncRecursive(outdir(file));
 
 			// exec command
-			exec(substituteVars(array[i].exec, file), flow);
-			var result = flow.wait();
-
-			if (result.error)
-				console.error(result.stderr);
+			// exec(substituteVars(array[i].exec, file), flow.add());
+			tasks.push(function(callback) {
+				exec(substituteVars(array[i].exec, file), function(error, stdout, stderr) {
+					if (error)
+						console.error(stderr);
+					callback();
+				});
+			});
 
 			// break after first matching rule
 			return true;
@@ -73,37 +78,35 @@ function runExec(flow, array, file) {
 	return false;
 }
 
-function handleEvent(flow, changeType, filePath, fileCurrentStat, filePreviousStat) {
+function handleEvent(changeType, filePath, fileCurrentStat, filePreviousStat) {
 	var stat = fileCurrentStat ? fileCurrentStat : filePreviousStat;
 
 	if (stat.mode & 0x4000 != 0)
-		return runExec(flow, rules.filterOn('type', 'dir').filterOn('event', changeType), filePath);
+		return runExec(rules.filterOn('type', 'dir').filterOn('event', changeType), filePath);
 	else
-		return runExec(flow, rules.filterOn('type', 'file').filterOn('event', changeType), filePath);
+		return runExec(rules.filterOn('type', 'file').filterOn('event', changeType), filePath);
 }
 
-function handleFile(flow, changeType, filePath, fileCurrentStat, filePreviousStat) {
+function handleFile(changeType, filePath, fileCurrentStat, filePreviousStat) {
 	var handled = false;
 
 	// handle 'createupdate' special case
 	if (changeType === 'create' || changeType === 'update')
-		handled = handleEvent(flow, 'createupdate', filePath, fileCurrentStat, filePreviousStat);
+		handled = handleEvent('createupdate', filePath, fileCurrentStat, filePreviousStat);
 
 	// if 'createupdate' didn't catch anything, handle normal events
 	if (!handled)
-		handleEvent(flow, changeType, filePath, fileCurrentStat, filePreviousStat);
+		handleEvent(changeType, filePath, fileCurrentStat, filePreviousStat);
 }
 
 function watchfs() {
 	console.log('Watching ' + program.watchdir + '...');
 
-	asyncblock(function(flow) {
-		watchr.watch({
-			path: program.watchdir,
-			listener: function(changeType, filePath, fileCurrentStat, filePreviousStat) {
-				handleFile(flow, changeType, filePath, fileCurrentStat, filePreviousStat);
-			}
-		});
+	watchr.watch({
+		path: program.watchdir,
+		listener: function(changeType, filePath, fileCurrentStat, filePreviousStat) {
+			handleFile(changeType, filePath, fileCurrentStat, filePreviousStat);
+		}
 	});
 }
 
@@ -114,12 +117,23 @@ if (program.removeoutdir)
 if (program.execrules) {
 	var files = wrench.readdirSyncRecursive(program.watchdir);
 
-	asyncblock(function(flow) {
-		for (var i = 0; i < files.length; i++)
-			handleFile(flow, 'create', path.join(program.watchdir, files[i]),
-					   fs.statSync(path.join(program.watchdir, files[i])), null);
-		console.log('');
-	});
+	for (var i = 0; i < files.length; i++)
+		handleFile('create', path.join(program.watchdir, files[i]),
+				   fs.statSync(path.join(program.watchdir, files[i])), null);
+
+	console.log('');
 }
 
 watchfs();
+
+// queue
+function drainQueue() {
+	if (tasks.length > 0) {
+		tasks.pop()(drainQueue);
+	}
+	else
+		process.nextTick(drainQueue);
+}
+
+// run task queue
+drainQueue();
