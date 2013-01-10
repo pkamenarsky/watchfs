@@ -22,7 +22,7 @@ String.prototype.replaceAll = function (what, str) {
 var tasks = [];
 
 program
-	.version('1.1.2')
+	.version('1.1.3')
 	.option('-o, --outdir <dir>', 'Output directory [out]', String, 'out')
 	.option('-w, --watchdir <dir>', 'Watch directory [.]', String, '.')
 	.option('-c, --cfg <file>', 'Configuration file [watchrules.yaml]', String, 'watchrules.yaml')
@@ -52,19 +52,21 @@ function runExec(array, file) {
 	for (var i = 0; i < array.length; i++) {
 		if (file.match(array[i].filter) != null) {
 
-			// show message
-			console.log(substituteVars(array[i].message, file));
-
-			// create outdir if it doesn't exist
-			if (!fs.existsSync(outdir(file)))
-				wrench.mkdirSyncRecursive(outdir(file));
-
 			// exec command
-			// exec(substituteVars(array[i].exec, file), flow.add());
 			tasks.push(function(callback) {
+				// show message
+				console.log(substituteVars(array[i].message, file));
+
+				// create outdir if it doesn't exist
+				if (!fs.existsSync(outdir(file)))
+					wrench.mkdirSyncRecursive(outdir(file));
+
+				// exec command
 				exec(substituteVars(array[i].exec, file), function(error, stdout, stderr) {
 					if (error)
 						console.error(stderr);
+
+					// yield back to task queue
 					callback();
 				});
 			});
@@ -100,7 +102,10 @@ function handleFile(changeType, filePath, fileCurrentStat, filePreviousStat) {
 }
 
 function watchfs() {
-	console.log('Watching ' + program.watchdir + '...');
+	tasks.push(function(callback) {
+		console.log('Watching ' + program.watchdir + '...');
+		callback();
+	});
 
 	watchr.watch({
 		path: program.watchdir,
@@ -121,7 +126,10 @@ if (program.execrules) {
 		handleFile('create', path.join(program.watchdir, files[i]),
 				   fs.statSync(path.join(program.watchdir, files[i])), null);
 
-	console.log('');
+	tasks.push(function(callback) {
+		console.log('');
+		callback();
+	});
 }
 
 watchfs();
@@ -129,7 +137,7 @@ watchfs();
 // queue
 function drainQueue() {
 	if (tasks.length > 0) {
-		tasks.pop()(drainQueue);
+		tasks.shift()(drainQueue);
 	}
 	else
 		process.nextTick(drainQueue);
