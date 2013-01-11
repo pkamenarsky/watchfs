@@ -24,7 +24,7 @@ var varName = null;
 var varValue = null;
 
 program
-	.version('1.1.6')
+	.version('1.1.7')
 	.option('-o, --outdir <dir>', 'Output directory [out]', String, 'out')
 	.option('-w, --watchdir <dir>', 'Watch directory [.]', String, '.')
 	.option('-c, --cfg <file>', 'Configuration file [watchrules.yaml]', String, 'watchrules.yaml')
@@ -136,10 +136,14 @@ if (program.removeoutdir)
 
 if (program.execrules) {
 	var files = wrench.readdirSyncRecursive(program.watchdir);
+	var initRule = rules.filterOn('type', 'init');
 
 	for (var i = 0; i < files.length; i++)
 		handleFile('create', path.join(program.watchdir, files[i]),
 				   fs.statSync(path.join(program.watchdir, files[i])), null);
+
+	if (initRule.length >= 1)
+		runExec(initRule[0], '');
 
 	tasks.push(function(callback) {
 		console.log('');
@@ -147,10 +151,6 @@ if (program.execrules) {
 	});
 }
 
-var initRule = rules.filterOn('type', 'init');
-
-if (initRule.length >= 1)
-	runExec(initRule[0], '');
 
 watchfs();
 
