@@ -20,15 +20,25 @@ String.prototype.replaceAll = function (what, str) {
 
 // task queue
 var tasks = [];
+var varName = null;
+var varValue = null;
 
 program
-	.version('1.1.3')
+	.version('1.1.5')
 	.option('-o, --outdir <dir>', 'Output directory [out]', String, 'out')
 	.option('-w, --watchdir <dir>', 'Watch directory [.]', String, '.')
 	.option('-c, --cfg <file>', 'Configuration file [watchrules.yaml]', String, 'watchrules.yaml')
 	.option('-e, --execrules', 'Execute all rules on start', Boolean, false)
-	.option('-r, --removeoutdir', 'Recursively remove out directory', Boolean, false)
-	.parse(process.argv);
+	.option('-r, --removeoutdir', 'Recursively remove out directory', Boolean, false);
+
+program.command('set <variable> <value>')
+		.description('Set custom variable')
+		.action(function(variable, value) {
+			varName = variable;
+			varValue = value;
+		});
+
+program.parse(process.argv);
 
 if (!fs.existsSync(program.outdir))
 	wrench.mkdirSyncRecursive(program.outdir);
@@ -45,7 +55,8 @@ function substituteVars(str, file) {
 		.replaceAll('\\$basename', path.basename(file, path.extname(file)))
 		.replaceAll('\\$ext', path.extname(file))
 		.replaceAll('\\$indir', path.dirname(file))
-		.replaceAll('\\$outdir', outdir(file));
+		.replaceAll('\\$outdir', outdir(file))
+		.replaceAll('\\$' + varName, varValue);
 }
 
 function runExec(array, file) {
@@ -111,6 +122,7 @@ function watchfs() {
 		path: program.watchdir,
 		listener: function(changeType, filePath, fileCurrentStat, filePreviousStat) {
 			handleFile(changeType, filePath, fileCurrentStat, filePreviousStat);
+			drainQueue();
 		}
 	});
 }
@@ -136,11 +148,8 @@ watchfs();
 
 // queue
 function drainQueue() {
-	if (tasks.length > 0) {
+	if (tasks.length > 0)
 		tasks.shift()(drainQueue);
-	}
-	else
-		process.nextTick(drainQueue);
 }
 
 // run task queue
