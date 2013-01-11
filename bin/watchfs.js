@@ -24,7 +24,7 @@ var varName = null;
 var varValue = null;
 
 program
-	.version('1.1.5')
+	.version('1.1.6')
 	.option('-o, --outdir <dir>', 'Output directory [out]', String, 'out')
 	.option('-w, --watchdir <dir>', 'Watch directory [.]', String, '.')
 	.option('-c, --cfg <file>', 'Configuration file [watchrules.yaml]', String, 'watchrules.yaml')
@@ -59,28 +59,31 @@ function substituteVars(str, file) {
 		.replaceAll('\\$' + varName, varValue);
 }
 
-function runExec(array, file) {
+function runExec(command, file) {
+	// exec command
+	tasks.push(function(callback) {
+		// show message
+		console.log(substituteVars(command.message, file));
+
+		// create outdir if it doesn't exist
+		if (!fs.existsSync(outdir(file)))
+			wrench.mkdirSyncRecursive(outdir(file));
+
+		// exec command
+		exec(substituteVars(command.exec, file), function(error, stdout, stderr) {
+			if (error)
+				console.error(stderr);
+
+			// yield back to task queue
+			callback();
+		});
+	});
+}
+
+function matchRules(array, file) {
 	for (var i = 0; i < array.length; i++) {
 		if (file.match(array[i].filter) != null) {
-
-			// exec command
-			tasks.push(function(callback) {
-				// show message
-				console.log(substituteVars(array[i].message, file));
-
-				// create outdir if it doesn't exist
-				if (!fs.existsSync(outdir(file)))
-					wrench.mkdirSyncRecursive(outdir(file));
-
-				// exec command
-				exec(substituteVars(array[i].exec, file), function(error, stdout, stderr) {
-					if (error)
-						console.error(stderr);
-
-					// yield back to task queue
-					callback();
-				});
-			});
+			runExec(array[i], file);
 
 			// break after first matching rule
 			return true;
@@ -95,9 +98,9 @@ function handleEvent(changeType, filePath, fileCurrentStat, filePreviousStat) {
 	var stat = fileCurrentStat ? fileCurrentStat : filePreviousStat;
 
 	if (stat.mode & 0x4000 != 0)
-		return runExec(rules.filterOn('type', 'dir').filterOn('event', changeType), filePath);
+		return matchRules(rules.filterOn('type', 'dir').filterOn('event', changeType), filePath);
 	else
-		return runExec(rules.filterOn('type', 'file').filterOn('event', changeType), filePath);
+		return matchRules(rules.filterOn('type', 'file').filterOn('event', changeType), filePath);
 }
 
 function handleFile(changeType, filePath, fileCurrentStat, filePreviousStat) {
@@ -143,6 +146,11 @@ if (program.execrules) {
 		callback();
 	});
 }
+
+var initRule = rules.filterOn('type', 'init');
+
+if (initRule.length >= 1)
+	runExec(initRule[0], '');
 
 watchfs();
 
