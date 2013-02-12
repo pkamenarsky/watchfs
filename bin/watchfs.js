@@ -24,7 +24,7 @@ var varName = null;
 var varValue = null;
 
 program
-	.version('1.1.7')
+	.version('1.1.9')
 	.option('-o, --outdir <dir>', 'Output directory [out]', String, 'out')
 	.option('-w, --watchdir <dir>', 'Watch directory [.]', String, '.')
 	.option('-c, --cfg <file>', 'Configuration file [watchrules.yaml]', String, 'watchrules.yaml')
@@ -143,7 +143,7 @@ if (program.execrules) {
 				   fs.statSync(path.join(program.watchdir, files[i])), null);
 
 	if (initRule.length >= 1)
-		runExec(initRule[0], '');
+		runExec(initRule[0], program.watchdir + path.sep + 'x');
 
 	tasks.push(function(callback) {
 		console.log('');

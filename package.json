@@ -1,7 +1,7 @@
 {
 	"name": "watchfs",
 	"description": "Configurable filesystem watcher & build system",
-	"version": "1.1.7",
+	"version": "1.1.9",
 	"homepage": "https://github.com/pkamenarsky/watchfs",
 	"license": {
 		"name": "MIT",
@@ -11,9 +11,9 @@
 	"keywords": ["watch", "build", "fs", "filesystem"],
 
 	"author": {
-		"name": "Philip Kamenarsky",
-		"email": "p.kamenarsky@gmail.com",
-		"url": "https://twitter.com/pkamenarsky"
+		"name": "Leanplum",
+		"email": "contact@leanplum.com",
+		"url": "http://www.leanplum.com"
 	},
 
 	"repository": {
